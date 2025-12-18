@@ -1,0 +1,1025 @@
+
+📂 Папка: ./
+
+📄 Файл: api.js
+============================================================
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
+
+// 🔹 Общая функция запроса
+async function request(endpoint, options = {}) {
+  const response = await fetch(`${API_BASE}${endpoint}`, options);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Ошибка сервера" }));
+    throw error;
+  }
+  return response.json();
+}
+
+// 🔹 Получить список пользователей
+export async function fetchUsers() {
+  const response = await fetch(`${API_BASE}/users`);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Ошибка сервера" }));
+    throw error;
+  }
+  return await response.json();
+}
+
+// 🔹 Авторизация пользователя
+export async function login(user_id, password) {
+  return request("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, password }),
+  });
+}
+
+// 🔹 Получить все чек-листы
+export async function fetchChecklists() {
+  return request("/checklists");
+}
+
+// 🔹 Получить конкретный чек-лист по ID
+export async function fetchChecklist(id) {
+  return request(`/checklists/${id}`);
+}
+
+// 🔹 Отправить отчёт
+export async function submitReport(payload) {
+  return request("/submit_report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+============================================================
+
+📄 Файл: index.js
+============================================================
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+// ✅ Подключаем PWA (service worker)
+import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
+
+// ✅ (Необязательно) логируем производительность
+import reportWebVitals from "./reportWebVitals";
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// ✅ Регистрируем service worker для PWA
+serviceWorkerRegistration.register();
+
+// ✅ Включаем отчёт о производительности (можно отключить)
+reportWebVitals();
+
+============================================================
+
+📄 Файл: App.js
+============================================================
+import React, { useState, useEffect } from "react";
+import LoginSelect from "./components/LoginSelect";
+import Dashboard from "./components/Dashboard";
+import ChecklistPlayer from "./components/ChecklistPlayer";
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [currentChecklist, setCurrentChecklist] = useState(null);
+  const [backendStatus, setBackendStatus] = useState("⏳ Проверка...");
+
+  // Проверка соединения с backend
+  useEffect(() => {
+    fetch("/ping")   // ⚡ теперь работает через proxy
+      .then((res) => res.json())
+      .then((data) => setBackendStatus("✅ Backend работает: " + data.message))
+      .catch((err) =>
+        setBackendStatus("❌ Ошибка fetch: " + err.message)
+      );
+  }, []);
+
+  if (!user) {
+    return (
+      <div>
+        <p>{backendStatus}</p>
+        <LoginSelect onLogin={(u) => setUser(u)} />
+      </div>
+    );
+  }
+
+  if (currentChecklist) {
+    return (
+      <ChecklistPlayer
+        user={user}
+        checklistId={currentChecklist}
+        onDone={() => {
+          setCurrentChecklist(null);
+          setUser(null);
+          alert("Приложение закрывается.");
+        }}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <p>{backendStatus}</p>
+      <Dashboard user={user} onOpenChecklist={(id) => setCurrentChecklist(id)} />
+    </div>
+  );
+}
+
+export default App;
+
+============================================================
+
+📄 Файл: serviceWorkerRegistration.js
+============================================================
+// ✅ serviceWorkerRegistration.js
+
+const isLocalhost = Boolean(
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "[::1]" ||
+  window.location.hostname.match(
+    /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
+  )
+);
+
+export function register(config) {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+
+      if (isLocalhost) {
+        // ✅ Проверка service worker на localhost
+        checkValidServiceWorker(swUrl, config);
+      } else {
+        // ✅ Регистрация service worker в продакшене
+        registerValidSW(swUrl, config);
+      }
+    });
+  }
+}
+
+function registerValidSW(swUrl, config) {
+  navigator.serviceWorker
+    .register(swUrl)
+    .then(registration => {
+      registration.onupdatefound = () => {
+        const installingWorker = registration.installing;
+        if (installingWorker == null) return;
+
+        installingWorker.onstatechange = () => {
+          if (installingWorker.state === "installed") {
+            if (navigator.serviceWorker.controller) {
+              console.log("🔄 Новое обновление доступно.");
+              if (config && config.onUpdate) config.onUpdate(registration);
+            } else {
+              console.log("✅ Контент кэширован для офлайн-режима.");
+              if (config && config.onSuccess) config.onSuccess(registration);
+            }
+          }
+        };
+      };
+    })
+    .catch(error => {
+      console.error("❌ Ошибка регистрации service worker:", error);
+    });
+}
+
+function checkValidServiceWorker(swUrl, config) {
+  fetch(swUrl, { headers: { "Service-Worker": "script" } })
+    .then(response => {
+      const contentType = response.headers.get("content-type");
+      if (
+        response.status === 404 ||
+        (contentType != null && contentType.indexOf("javascript") === -1)
+      ) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.unregister().then(() => {
+            window.location.reload();
+          });
+        });
+      } else {
+        registerValidSW(swUrl, config);
+      }
+    })
+    .catch(() => {
+      console.log("⚠️ Нет подключения к интернету. Приложение работает в офлайн-режиме.");
+    });
+}
+
+export function unregister() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready
+      .then(registration => {
+        registration.unregister();
+      })
+      .catch(error => {
+        console.error("❌ Ошибка при удалении service worker:", error);
+      });
+  }
+}
+
+============================================================
+
+📄 Файл: reportWebVitals.js
+============================================================
+// reportWebVitals.js — необязательный файл для логирования производительности
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import("web-vitals").then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+============================================================
+
+📄 Файл: index.css
+============================================================
+/* 🔹 Общие стили */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* 🔹 Заголовки */
+h1, h2, h3 {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+/* 🔹 Кнопки */
+button {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* 🔹 Поля ввода */
+input, textarea {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* 🔹 Контейнер приложения */
+#root {
+  padding: 20px;
+  max-width: 640px;
+  margin: auto;
+}
+
+/* 🔹 Адаптация для мобильных */
+@media (max-width: 480px) {
+  button {
+    width: 100%;
+    font-size: 0.95em;
+  }
+
+  input, textarea {
+    font-size: 0.95em;
+  }
+}
+
+============================================================
+
+📄 Файл: dump_structure.py
+============================================================
+import os
+
+output_file = "project_structure.txt"
+
+def dump_directory(root_dir, output_file):
+    with open(output_file, "w", encoding="utf-8") as out:
+        for foldername, subfolders, filenames in os.walk(root_dir):
+            # относительный путь
+            rel_path = os.path.relpath(foldername, root_dir)
+            if rel_path == ".":
+                rel_path = ""
+            out.write(f"\n📂 Папка: {rel_path or './'}\n")
+
+            for filename in filenames:
+                filepath = os.path.join(foldername, filename)
+                out.write(f"\n📄 Файл: {os.path.join(rel_path, filename)}\n")
+                out.write("=" * 60 + "\n")
+                try:
+                    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                    out.write(content + "\n")
+                except Exception as e:
+                    out.write(f"[Ошибка чтения файла: {e}]\n")
+                out.write("=" * 60 + "\n")
+    print(f"✅ Структура проекта сохранена в {output_file}")
+
+if __name__ == "__main__":
+    dump_directory(os.getcwd(), output_file)
+
+============================================================
+
+📄 Файл: project_structure.txt
+============================================================
+
+📂 Папка: ./
+
+📄 Файл: api.js
+============================================================
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
+
+// 🔹 Общая функция запроса
+async function request(endpoint, options = {}) {
+  const response = await fetch(`${API_BASE}${endpoint}`, options);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Ошибка сервера" }));
+    throw error;
+  }
+  return response.json();
+}
+
+// 🔹 Получить список пользователей
+export async function fetchUsers() {
+  const response = await fetch(`${API_BASE}/users`);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Ошибка сервера" }));
+    throw error;
+  }
+  return await response.json();
+}
+
+// 🔹 Авторизация пользователя
+export async function login(user_id, password) {
+  return request("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, password }),
+  });
+}
+
+// 🔹 Получить все чек-листы
+export async function fetchChecklists() {
+  return request("/checklists");
+}
+
+// 🔹 Получить конкретный чек-лист по ID
+export async function fetchChecklist(id) {
+  return request(`/checklists/${id}`);
+}
+
+// 🔹 Отправить отчёт
+export async function submitReport(payload) {
+  return request("/submit_report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+============================================================
+
+📄 Файл: index.js
+============================================================
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+// ✅ Подключаем PWA (service worker)
+import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
+
+// ✅ (Необязательно) логируем производительность
+import reportWebVitals from "./reportWebVitals";
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// ✅ Регистрируем service worker для PWA
+serviceWorkerRegistration.register();
+
+// ✅ Включаем отчёт о производительности (можно отключить)
+reportWebVitals();
+
+============================================================
+
+📄 Файл: App.js
+============================================================
+import React, { useState, useEffect } from "react";
+import LoginSelect from "./components/LoginSelect";
+import Dashboard from "./components/Dashboard";
+import ChecklistPlayer from "./components/ChecklistPlayer";
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [currentChecklist, setCurrentChecklist] = useState(null);
+  const [backendStatus, setBackendStatus] = useState("⏳ Проверка...");
+
+  // Проверка соединения с backend
+  useEffect(() => {
+    fetch("/ping")   // ⚡ теперь работает через proxy
+      .then((res) => res.json())
+      .then((data) => setBackendStatus("✅ Backend работает: " + data.message))
+      .catch((err) =>
+        setBackendStatus("❌ Ошибка fetch: " + err.message)
+      );
+  }, []);
+
+  if (!user) {
+    return (
+      <div>
+        <p>{backendStatus}</p>
+        <LoginSelect onLogin={(u) => setUser(u)} />
+      </div>
+    );
+  }
+
+  if (currentChecklist) {
+    return (
+      <ChecklistPlayer
+        user={user}
+        checklistId={currentChecklist}
+        onDone={() => {
+          setCurrentChecklist(null);
+          setUser(null);
+          alert("Приложение закрывается.");
+        }}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <p>{backendStatus}</p>
+      <Dashboard user={user} onOpenChecklist={(id) => setCurrentChecklist(id)} />
+    </div>
+  );
+}
+
+export default App;
+
+============================================================
+
+📄 Файл: serviceWorkerRegistration.js
+============================================================
+// ✅ serviceWorkerRegistration.js
+
+const isLocalhost = Boolean(
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "[::1]" ||
+  window.location.hostname.match(
+    /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
+  )
+);
+
+export function register(config) {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+
+      if (isLocalhost) {
+        // ✅ Проверка service worker на localhost
+        checkValidServiceWorker(swUrl, config);
+      } else {
+        // ✅ Регистрация service worker в продакшене
+        registerValidSW(swUrl, config);
+      }
+    });
+  }
+}
+
+function registerValidSW(swUrl, config) {
+  navigator.serviceWorker
+    .register(swUrl)
+    .then(registration => {
+      registration.onupdatefound = () => {
+        const installingWorker = registration.installing;
+        if (installingWorker == null) return;
+
+        installingWorker.onstatechange = () => {
+          if (installingWorker.state === "installed") {
+            if (navigator.serviceWorker.controller) {
+              console.log("🔄 Новое обновление доступно.");
+              if (config && config.onUpdate) config.onUpdate(registration);
+            } else {
+              console.log("✅ Контент кэширован для офлайн-режима.");
+              if (config && config.onSuccess) config.onSuccess(registration);
+            }
+          }
+        };
+      };
+    })
+    .catch(error => {
+      console.error("❌ Ошибка регистрации service worker:", error);
+    });
+}
+
+function checkValidServiceWorker(swUrl, config) {
+  fetch(swUrl, { headers: { "Service-Worker": "script" } })
+    .then(response => {
+      const contentType = response.headers.get("content-type");
+      if (
+        response.status === 404 ||
+        (contentType != null && contentType.indexOf("javascript") === -1)
+      ) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.unregister().then(() => {
+            window.location.reload();
+          });
+        });
+      } else {
+        registerValidSW(swUrl, config);
+      }
+    })
+    .catch(() => {
+      console.log("⚠️ Нет подключения к интернету. Приложение работает в офлайн-режиме.");
+    });
+}
+
+export function unregister() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready
+      .then(registration => {
+        registration.unregister();
+      })
+      .catch(error => {
+        console.error("❌ Ошибка при удалении service worker:", error);
+      });
+  }
+}
+
+============================================================
+
+📄 Файл: reportWebVitals.js
+============================================================
+// reportWebVitals.js — необязательный файл для логирования производительности
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import("web-vitals").then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+============================================================
+
+📄 Файл: index.css
+============================================================
+/* 🔹 Общие стили */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* 🔹 Заголовки */
+h1, h2, h3 {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+/* 🔹 Кнопки */
+button {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* 🔹 Поля ввода */
+input, textarea {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* 🔹 Контейнер приложения */
+#root {
+  padding: 20px;
+  max-width: 640px;
+  margin: auto;
+}
+
+/* 🔹 Адаптация для мобильных */
+@media (max-width: 480px) {
+  button {
+    width: 100%;
+    font-size: 0.95em;
+  }
+
+  input, textarea {
+    font-size: 0.95em;
+  }
+}
+
+
+============================================================
+
+📂 Папка: components
+
+📄 Файл: components/LoginSelect.js
+============================================================
+import React, { useState, useEffect } from "react";
+import { fetchUsers, login } from "../api"; // убедись, что путь правильный
+
+export default function LoginSelect({ onLogin }) {
+  const [users, setUsers] = useState([]);
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchUsers()
+      .then(setUsers)
+      .catch(err => {
+        console.error("Ошибка загрузки пользователей:", err);
+        setError("Не удалось загрузить пользователей");
+      });
+  }, []);
+
+  const handleLogin = async () => {
+    setError("");
+    try {
+      await login(Number(userId), password);
+      const user = users.find(u => u.id === Number(userId));
+      onLogin(user);
+    } catch (e) {
+      setError(e.detail || "Ошибка ввода пароля");
+    }
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Выбор пользователя</h2>
+
+      <select value={userId} onChange={e => setUserId(e.target.value)}>
+        <option value="">Выберите пользователя</option>
+        {users.map(user => (
+          <option key={user.id} value={user.id}>
+            {user.name}
+          </option>
+        ))}
+      </select>
+
+      <input
+        type="password"
+        placeholder="Пароль"
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+      />
+
+      {error && <div style={{ color: "red" }}>{error}</div>}
+
+      <button onClick={handleLogin}>Войти</button>
+    </div>
+  );
+}
+
+============================================================
+
+📄 Файл: components/Dashboard.js
+============================================================
+import React, {useEffect, useState} from "react";
+import { fetchChecklists } from "../api";
+
+export default function Dashboard({user, onOpenChecklist}) {
+  const [cls, setCls] = useState([]);
+  useEffect(()=> {
+    fetchChecklists().then(setCls);
+  }, []);
+  return (
+    <div style={{padding:20}}>
+      <h2>Привет, {user.name}</h2>
+      <h3>Чек-листы</h3>
+      <ul>
+        {cls.map(c => (
+          <li key={c.id}>
+            <button onClick={()=>onOpenChecklist(c.id)}>{c.title}</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+============================================================
+
+📄 Файл: components/ChecklistPlayer.js
+============================================================
+import React, { useEffect, useState } from "react";
+import { fetchChecklist, submitReport } from "../api";
+import "./ChecklistPlayer.css";
+
+export default function ChecklistPlayer({ user, checklistId, onDone }) {
+  const [checklist, setChecklist] = useState(null);
+  const [index, setIndex] = useState(0);
+  const [checkedIds, setCheckedIds] = useState([]);
+  const [comment, setComment] = useState("");
+  const [showTemplate, setShowTemplate] = useState(false);
+  const [meta, setMeta] = useState({
+    date_of_incident: "",
+    flight_number: "",
+    place: "",
+    time_of_incident: ""
+  });
+
+  const [reportTime, setReportTime] = useState("");
+
+  useEffect(() => {
+    fetchChecklist(checklistId).then(data => {
+      setChecklist(data);
+      setReportTime(new Date().toISOString().slice(0, 16)); // YYYY-MM-DDTHH:mm
+    });
+    setIndex(0);
+    setCheckedIds([]);
+    setComment("");
+    setShowTemplate(false);
+  }, [checklistId]);
+
+  if (!checklist) return <div className="loading">Загрузка чек-листа...</div>;
+
+  const items = checklist.items;
+  const current = items[index];
+  const progress = Math.round((checkedIds.length / items.length) * 100);
+  const skippedItems = items.filter(item => !checkedIds.includes(item.id)).map(item => item.text);
+
+  const markChecked = (id) => {
+    if (!checkedIds.includes(id)) setCheckedIds([...checkedIds, id]);
+  };
+
+  const uncheck = (id) => {
+    setCheckedIds(checkedIds.filter(i => i !== id));
+  };
+
+  const skip = () => setIndex(i => Math.min(items.length - 1, i + 1));
+  const back = () => setIndex(i => Math.max(0, i - 1));
+  const toggleTemplate = () => setShowTemplate(prev => !prev);
+
+  const onNextAfterCheck = () => {
+    markChecked(current.id);
+    if (index < items.length - 1) setIndex(index + 1);
+  };
+
+  const handleSubmit = async () => {
+    if (!meta.date_of_incident || !meta.time_of_incident) {
+      alert("✋ Укажите дату и время события");
+      return;
+    }
+
+    const payload = {
+      user_id: user.id,
+      checklist_id: checklist.id,
+      date_of_incident: meta.date_of_incident,
+      flight_number: meta.flight_number,
+      place: meta.place,
+      time_of_incident: meta.time_of_incident,
+      checked_item_ids: checkedIds,
+      comment,
+      report_time: reportTime
+    };
+
+    try {
+      await submitReport(payload);
+      alert("📤 Отчёт отправлен");
+      onDone();
+    } catch (e) {
+      alert("❌ Ошибка отправки");
+    }
+  };
+
+  return (
+    <div className="checklist-player">
+      <h2>{checklist.title}</h2>
+
+      <div className="progress-bar">
+        <div className="progress-fill" style={{ width: `${progress}%` }} />
+        <span className="progress-text">{progress}% выполнено</span>
+      </div>
+
+      <div className="checklist-item">
+        <strong>Пункт {index + 1} / {items.length}</strong>
+        <p>{current.text}</p>
+      </div>
+
+      <div className="checklist-controls">
+        <button onClick={back}>◀ НАЗАД</button>
+        <button onClick={skip}>▶ ДАЛЕЕ</button>
+      </div>
+
+      <div className="checklist-controls">
+        <button onClick={onNextAfterCheck}>✅ ВЫПОЛНЕНО</button>
+        <button onClick={() => uncheck(current.id)}>⛔ ОТМЕНИТЬ</button>
+      </div>
+
+      <div className="checklist-template">
+        <button onClick={toggleTemplate}>📄 ШАБЛОН</button>
+        {showTemplate && (
+          <div className="template-text">
+            <p>🔹 Шаблон для чек-листа: {checklist.title}</p>
+            <p>{checklist.template_text || "❌ Шаблон отсутствует"}</p>
+          </div>
+        )}
+      </div>
+
+      {index === items.length - 1 && (
+        <div className="report-form">
+          <h4>📋 Форма отчёта</h4>
+          <input type="text" placeholder="✈️ Рейс" value={meta.flight_number} onChange={e => setMeta({ ...meta, flight_number: e.target.value })} />
+          <input type="text" placeholder="📍 Район/Зона" value={meta.place} onChange={e => setMeta({ ...meta, place: e.target.value })} />
+          <input type="date" value={meta.date_of_incident} onChange={e => setMeta({ ...meta, date_of_incident: e.target.value })} />
+          <input type="time" value={meta.time_of_incident} onChange={e => setMeta({ ...meta, time_of_incident: e.target.value })} />
+          <textarea placeholder="💬 Комментарий" value={comment} onChange={e => setComment(e.target.value)} />
+          <button onClick={handleSubmit}>📤 Отправить отчёт</button>
+        </div>
+      )}
+
+      <div className="checklist-status">
+        <p>✅ Отмечено: {checkedIds.length} / {items.length}</p>
+        <p>🕒 Заполнено: {reportTime.replace("T", " ")}</p>
+        {skippedItems.length > 0 && (
+          <p>⚠️ Пропущено: {skippedItems.join(", ")}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+============================================================
+
+📄 Файл: components/ChecklistPlayer.css
+============================================================
+.checklist-player {
+  padding: 20px;
+  max-width: 640px;
+  margin: auto;
+  font-family: sans-serif;
+}
+
+.progress-bar {
+  position: relative;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #28a745;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: -25px;
+  right: 0;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.checklist-item {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.checklist-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.checklist-controls button {
+  flex: 1 1 45%;
+  padding: 12px;
+  font-size: 1em;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  background-color: white;
+  color: #007bff;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.checklist-controls button:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.checklist-template {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.template-text {
+  background: #fff8dc;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+  font-size: 0.95em;
+}
+
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.report-form input,
+.report-form textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1em;
+}
+
+.report-form button {
+  padding: 12px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.report-form button:hover {
+  background-color: #218838;
+}
+
+.checklist-status {
+  margin-top: 20px;
+  text-align: left;
+}
+
+============================================================
