@@ -1,0 +1,166 @@
+.shift-menu {
+  max-width: 720px;
+  margin: 24px auto;
+  padding: 16px;
+  font-family: Arial, sans-serif;
+}
+
+.shift-grid .row.big-2 {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.big-btn {
+  flex: 1;
+  height: 140px;
+  font-size: 18px;
+  border-radius: 8px;
+  border: 2px solid #007bff;
+  background: white;
+  color: #007bff;
+  cursor: pointer;
+}
+
+/* Use same visual style as checklist `menu-btn` for menu/back buttons */
+.wide-btn,
+.logout-btn,
+.back-btn {
+  padding: 12px;
+  font-size: 1em;
+  border: 2px solid #6c757d;
+  border-radius: 8px;
+  background-color: white;
+  color: #6c757d;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.wide-btn:hover,
+.back-btn:hover {
+  background-color: #6c757d;
+  color: white;
+}
+
+.logout-btn:hover {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+/* Make CHЕK-LISTS wide and same height as top buttons */
+.wide-btn {
+  display: block;
+  width: 100%;
+  height: 140px;
+}
+
+/* Center the logout button and give it compact width */
+.logout-btn {
+  display: block;
+  width: 50%;
+  margin: 12px auto 0;
+}
+
+.accept-form, .handover-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+/* gentle bright backdrop for text over background image */
+.text-backdrop {
+  background: rgba(255, 245, 180, 0.88);
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  color: #111;
+}
+
+.accept-btn, .submit-btn {
+  padding: 12px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.back-btn {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #6c757d;
+  background: white;
+  cursor: pointer;
+}
+
+.role-switch {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 8px 0 12px;
+}
+
+.role-switch label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  width: 140px; /* equal size */
+  box-sizing: border-box;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  background: white;
+}
+
+.role-switch input[type="radio"] {
+  width: 16px;
+  height: 16px;
+}
+
+.role-switch label:hover {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.dpa-fields input, .rc-fields input { width: 100px; }
+
+.dpa-fields, .rc-fields {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center; /* center the label+input groups */
+  margin-bottom: 8px;
+}
+
+.dpa-fields label, .rc-fields label { min-width: 80px; text-align: right; }
+
+.dpa-fields input, .rc-fields input { width: 120px; }
+
+.accept-comments textarea, .handover-form textarea, .accept-form textarea { width: 100%; min-height: 80px; }
+
+/* Layout buttons in accept-comments side-by-side with equal size */
+.accept-comments .accept-btn,
+.accept-comments .back-btn {
+  display: inline-block;
+  width: 48%;
+  box-sizing: border-box;
+  vertical-align: top;
+  height: 48px;
+  padding: 10px;
+}
+
+/* Ensure handover actions buttons are symmetric */
+.handover-actions {
+  display: flex;
+  gap: 10px;
+}
+.handover-actions .submit-btn,
+.handover-actions .back-btn {
+  flex: 1;
+  height: 48px;
+}

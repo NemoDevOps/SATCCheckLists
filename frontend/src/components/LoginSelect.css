@@ -1,0 +1,189 @@
+.login-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 30px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+.login-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.filter-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  color: #666;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.filter-btn:hover {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.filter-btn.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.login-container select,
+.login-container input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+  box-sizing: border-box;
+}
+
+.login-container select:focus,
+.login-container input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+}
+
+.login-container button {
+  width: 100%;
+  padding: 12px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.login-container button:hover {
+  background-color: #218838;
+}
+
+.login-container button:active {
+  background-color: #1e7e34;
+}
+
+/* Mic button */
+.mic-btn {
+  padding: 8px 12px;
+  font-size: 1.1em;
+  border-radius: 6px;
+  border: 2px solid #ccc;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.mic-btn:hover:not(:disabled) {
+  border-color: #007bff;
+  background: #f0f8ff;
+  transform: scale(1.05);
+}
+
+.mic-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Микрофон в режиме прослушивания */
+.mic-btn.mic-listening {
+  background: #dc3545;
+  color: white;
+  border-color: #c82333;
+  animation: pulse-red 0.8s infinite;
+}
+
+/* Микрофон обрабатывает */
+.mic-btn.mic-processing {
+  background: #ffc107;
+  color: #333;
+  border-color: #ff9800;
+  animation: spin 1s linear infinite;
+}
+
+/* Микрофон распознал */
+.mic-btn.mic-recognized {
+  background: #28a745;
+  color: white;
+  border-color: #1e7e34;
+  animation: bounce 0.6s ease;
+}
+
+/* Микрофон в режиме ожидания */
+.mic-btn.mic-idle {
+  background: white;
+  color: #666;
+  border-color: #ccc;
+}
+
+/* Анимация пульса для активного микрофона */
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+  }
+}
+
+/* Анимация вращения для обработки */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Анимация скачка для успеха */
+@keyframes bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* input + mic row */
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.input-row input {
+  flex: 1 1 auto;
+  margin-bottom: 0;
+  padding: 10px 12px;
+  height: 44px;
+}
+.input-row .mic-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 1.1em;
+  transform: translateY(-6px);
+  flex-shrink: 0;
+}
+.input-row .mic-btn:active:not(:disabled) {
+  transform: scale(0.92) translateY(-6px);
+}

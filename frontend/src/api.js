@@ -1,4 +1,7 @@
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
+// api.js
+
+// 🔹 Базовый адрес API — берём из .env или по умолчанию
+export const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:5000";
 
 // 🔹 Общая функция запроса
 async function request(endpoint, options = {}) {
@@ -12,12 +15,7 @@ async function request(endpoint, options = {}) {
 
 // 🔹 Получить список пользователей
 export async function fetchUsers() {
-  const response = await fetch(`${API_BASE}/users`);
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Ошибка сервера" }));
-    throw error;
-  }
-  return await response.json();
+  return request("/users");
 }
 
 // 🔹 Авторизация пользователя
@@ -26,6 +24,15 @@ export async function login(user_id, password) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id, password }),
+  });
+}
+
+// 🔹 Авторизация по голосовому паролю (4 цифры)
+export async function voiceLogin(password) {
+  return request("/login/voice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
   });
 }
 
@@ -42,6 +49,24 @@ export async function fetchChecklist(id) {
 // 🔹 Отправить отчёт
 export async function submitReport(payload) {
   return request("/submit_report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+// 🔹 Отправка смены: приём дежурства
+export async function sendShiftAccept(payload) {
+  return request("/shift/accept", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+// 🔹 Отправка смены: сдача дежурства
+export async function sendShiftHandOver(payload) {
+  return request("/shift/hand_over", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
